@@ -12,6 +12,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M4 — JSON report + strict + malformed samples | 2026-09-02 | clean | 103/103 | frozen JSON schema (`valid_small.expected.json`), `--exact-percentiles`, `--strict` exit 3; CTest 1/1 |
 | M5 — io: mmap + chunk splitter | 2026-09-02 | clean | 116/116 | `MappedFile` (Win32 mmap + fallback), newline-aligned `split_into_chunks`; `analyze` now reads via mmap; CTest 1/1 |
 | M6 — concurrency + equivalence gate | 2026-09-02 | clean | 122/122 | `parallel_aggregate` (lock-free map/reduce); seq==par bit-identical (+ identical rendered JSON) for threads 1..64, with filters, tiny/empty input; CTest 1/1 |
+| M7 — benchmark + gen + memory | 2026-09-02 | clean | 133/133 | `gen` (deterministic synthetic dataset), `benchmark` (thread sweep, median phase time, speedup/efficiency/verdict), `peak_working_set_bytes`; `docs/PERFORMANCE.md` methodology; CTest 1/1 |
 
 ### Equivalence gate (SPEC section 6)
 
@@ -163,3 +164,25 @@ Test files:
   exact cover + interior-chunks-end-with-newline + no-empty-chunk invariants
   for n=1..16, no-newline buffer, one long line not split, no trailing
   newline, `n` > line count.
+
+## Detail — M7
+
+Scope: `la_gen` (`generate_log` -- portable, seed-deterministic synthetic
+dataset built on `std::mt19937_64` with hand-rolled Box-Muller so output is
+byte-identical across standard libraries); `la_bench`
+(`run_benchmark_core` -- warmup + repeat timing of `parallel_aggregate`,
+median phase time, records/s, MB/s, speedup, efficiency, plain-language
+verdict; text and JSON renderers); `la_core` gains `peak_working_set_bytes`
+(`K32GetProcessMemoryInfo`). `gen` and `benchmark` commands wired into the
+dispatcher. `docs/PERFORMANCE.md` documents the methodology (M8 fills in
+numbers).
+
+Test files:
+- `gen/generator_tests.cpp` -- seed determinism, seed sensitivity, exact
+  line count, clean parse (0 malformed / 0 blank), severity mix within loose
+  bounds, monotonic timestamps.
+- `bench/benchmark_tests.cpp` -- one row per thread count, consistent record
+  counts, finite/self-consistent metrics, baseline speedup == 1.0, default
+  sweep fallback, JSON render balance.
+- `core/process_info_tests.cpp` -- peak working set reported and non-zero on
+  Windows.

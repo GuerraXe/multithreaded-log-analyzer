@@ -1,6 +1,7 @@
 #include "app/run.hpp"
 
 #include "app/analyze.hpp"
+#include "app/commands.hpp"
 #include "core/version.hpp"
 
 #include <ostream>
@@ -35,18 +36,6 @@ void print_usage(std::ostream& os) {
        << "  -o, --output <file>    write report to file instead of stdout\n";
 }
 
-const char* command_name(Command c) {
-    switch (c) {
-        case Command::Analyze: return "analyze";
-        case Command::Benchmark: return "benchmark";
-        case Command::Gen: return "gen";
-        case Command::Version: return "version";
-        case Command::Help: return "help";
-        case Command::None: return "none";
-    }
-    return "none";
-}
-
 } // namespace
 
 int run(const Options& opt, std::ostream& out, std::ostream& err) {
@@ -63,10 +52,10 @@ int run(const Options& opt, std::ostream& out, std::ostream& err) {
             return run_analyze(opt, out, err);
 
         case Command::Benchmark:
+            return run_benchmark(opt, out, err);
+
         case Command::Gen:
-            err << "loganalyzer: command '" << command_name(opt.command)
-                << "' is not implemented yet\n";
-            return 1;
+            return run_gen(opt, out, err);
 
         case Command::None:
             err << "loganalyzer: no command\n";

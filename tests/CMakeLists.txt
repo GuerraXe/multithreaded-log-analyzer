@@ -4,6 +4,7 @@
 add_executable(loganalyzer_tests
     support/runner_main.cpp
     smoke_test.cpp
+    core/process_info_tests.cpp
     io/mapped_file_tests.cpp
     io/chunking_tests.cpp
     parse/timestamp_tests.cpp
@@ -16,6 +17,8 @@ add_executable(loganalyzer_tests
     aggregate/time_buckets_tests.cpp
     aggregate/aggregate_tests.cpp
     concurrency/equivalence_tests.cpp
+    gen/generator_tests.cpp
+    bench/benchmark_tests.cpp
     stats/report_tests.cpp
     report/text_renderer_tests.cpp
     report/json_renderer_tests.cpp
