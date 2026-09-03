@@ -19,7 +19,7 @@ void print_usage(std::ostream& os) {
        << "  version            print version and exit\n"
        << "  help [command]     show help\n\n"
        << "analyze options:\n"
-       << "  --threads N            worker threads (default 1; 0 = all cores)\n"
+       << "  --threads N            worker threads (default 1; 0 = all logical cores)\n"
        << "  --format NAME          log format (default: pipe)\n"
        << "  --from <ts> / --to <ts>   ISO-8601 bounds, half-open [from, to)\n"
        << "  --level <LVL>          minimum severity (TRACE..FATAL)\n"
@@ -30,10 +30,21 @@ void print_usage(std::ostream& os) {
        << "  --path-contains <s>    endpoint path substring\n"
        << "  --top N                ranked-table size (default 10)\n"
        << "  --interval <dur>       time bucket: 30s | 1m | 5m | 1h (default 1m)\n"
+       << "  --exact-percentiles   exact sorted latency percentiles (forces --threads 1)\n"
        << "  --report <fmt>         text | json (default text)\n"
        << "  --strict              exit 3 if any malformed lines\n"
        << "  --show-malformed N     malformed samples to print (default 5)\n"
-       << "  -o, --output <file>    write report to file instead of stdout\n";
+       << "  -o, --output <file>    write report to file instead of stdout\n\n"
+       << "benchmark options:\n"
+       << "  --threads-list a,b,c   thread counts to sweep (default: 1,2,4,8,<cores>)\n"
+       << "  --warmup N             discarded runs per thread count (default 1)\n"
+       << "  --repeat N             measured runs per thread count (default 5)\n"
+       << "  --report <fmt>         text | json (default text)\n"
+       << "  (analyze filters are also accepted)\n\n"
+       << "gen options:\n"
+       << "  --lines N              number of lines to write (default 100000)\n"
+       << "  --seed N               PRNG seed; same seed => identical bytes (default 1)\n\n"
+       << "exit codes: 0 ok  1 usage error  2 I/O error  3 --strict and malformed lines\n";
 }
 
 } // namespace

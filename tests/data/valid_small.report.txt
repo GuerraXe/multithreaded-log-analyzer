@@ -1,4 +1,4 @@
-loganalyzer 0.0.0 — analysis report
+loganalyzer 1.0.0 — analysis report
 
 input
   bytes                1135

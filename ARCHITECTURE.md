@@ -35,19 +35,20 @@ point downward only; nothing depends on `cli` or `app`.
 
 | Module | Directory | Responsibility | Depends on |
 |---|---|---|---|
-| `io` | `src/io/` | Open and memory-map the input file (Win32 `CreateFileMapping` / `MapViewOfFile`, with a buffered-stream fallback). Split the mapped buffer into N byte ranges aligned forward to `\n`. Iterate lines as `string_view`. | — |
-| `parse` | `src/parse/` | `LogRecord`; `Level` / `Method` enums; timestamp parsing to epoch ms; `ILogFormat` interface; `PipeDelimitedFormat` implementation; `ParseError` reason codes. | — |
-| `filter` | `src/filter/` | `RecordFilter`: a stateless predicate built from `Options`. `matches(const LogRecord&) -> bool`. | `parse` |
-| `aggregate` | `src/aggregate/` | `PartialAggregate` (per-worker accumulator), `EndpointStat`, `LatencyHistogram`, `TimeBuckets`. `merge` folds partials associatively. | `parse` |
-| `stats` | `src/stats/` | Turn a merged `Aggregate` into a `Report` model: top-N with total-order tie-break, percentile extraction, rates. Pure. | `aggregate` |
-| `concurrency` | `src/concurrency/` | `analyze_sequential(...)` and `parallel_aggregate(buffer, format, filter, threads) -> Aggregate`. Map workers over chunks; reduce with `merge`. | `io`, `parse`, `filter`, `aggregate` |
-| `report` | `src/report/` | `TextRenderer` and `JsonRenderer`: `Report` -> `std::ostream`. | `stats` |
-| `cli` | `src/cli/` | Parse argv into `Command` + `Options`; validate; `--help` text. No I/O beyond writing usage. | `parse` (for enum parsing) |
-| `app` | `src/app/` | `run(const Options&) -> int`. Wire modules; own the timing; select sequential vs parallel; hand the `Report` to a renderer. `version`. | all of the above |
-| `bench` | `src/bench/` | `benchmark` command: plan a thread-count sweep, run warmup + repeats, collect `BenchmarkResult`, compute speedup / efficiency / verdict, sample peak working set. | `concurrency`, `io`, `report` |
+| `core` | `src/core/` | `version_string`; `peak_working_set_bytes` (`K32GetProcessMemoryInfo`); header-only `for_each_line`. | — |
+| `io` | `src/io/` | `MappedFile::open` — Win32 `CreateFileMapping` / `MapViewOfFile` with a buffered-read fallback and a zero-length view for empty files. `split_into_chunks` — N byte ranges aligned forward to `\n`, no empty chunks, exact cover. | — |
+| `parse` | `src/parse/` | `LogRecord`; `Level` / `Method` enums; `parse_timestamp` / `format_timestamp`; `ILogFormat` interface; `PipeDelimitedFormat`; `ParseError` reason codes; `make_log_format`. | — |
+| `filter` | `src/filter/` | `FilterSpec` → compiled stateless `RecordFilter`. `matches(const LogRecord&) -> bool`. | `parse` |
+| `aggregate` | `src/aggregate/` | `LatencyHistogram`, `EndpointStat`, `TimeBuckets`, `Aggregate` + `aggregate_buffer` driver. Transparent-hash `StringMap<V>` so hot-path map probes take a `string_view` and allocate only on first sight. `merge` folds partials associatively. | `parse`, `filter` |
+| `concurrency` | `src/concurrency/` | `parallel_aggregate(buffer, format, filter, opts, threads) -> Aggregate`. Map workers over chunks; serial `merge` fold. `resolve_thread_count`. | `io`, `aggregate`, `filter`, `parse` |
+| `stats` | `src/stats/` | `build_report` — merged `Aggregate` → render-ready `Report`: top-N with total-order tie-break, histogram or exact percentiles, rates, malformed-sample passthrough. Pure. | `aggregate` |
+| `report` | `src/report/` | `render_text` and `render_json` (hand-rolled streaming JSON writer, frozen schema): `Report` → `std::ostream`. | `stats`, `core` |
+| `gen` | `src/gen/` | `generate_log` — seed-deterministic synthetic dataset (portable transforms on `std::mt19937_64`). | `parse` |
+| `bench` | `src/bench/` | `run_benchmark_core` — warmup + repeat timing of `parallel_aggregate`; median phase time, speedup / efficiency / verdict, peak working set; text + JSON renderers. | `concurrency`, `aggregate`, `core` |
+| `cli` | `src/cli/` | `parse_args(argc, argv) -> ArgParse{ok, Options, error}`; validate every flag. | `parse`, `filter` |
+| `app` | `src/app/` | `run(const Options&) -> int` dispatch; the `analyze` / `benchmark` / `gen` drivers (file I/O, timing, renderer selection). | all of the above |
 
-`src/main.cpp` is a thin shell: dispatch on `argv[1]`, call `cli`, then `app`
-or `bench`.
+`src/main.cpp` is a thin shell: `parse_args`, then `run`.
 
 ---
 

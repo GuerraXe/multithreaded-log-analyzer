@@ -3,6 +3,10 @@
 Updated at the end of every milestone. `cmake --build` must be clean and the
 full `loganalyzer_tests` binary must be green before a milestone is marked done.
 
+**v1.0 — all 9 milestones complete.** 133 tests, CTest 1/1, warning-clean at
+`/W4 /permissive-` in both Debug and Release. The sequential/parallel
+equivalence gate (SPEC section 6) passes bit-for-bit.
+
 | Milestone | Date | Build | Tests (pass/total) | Notes |
 |---|---|---|---|---|
 | M0 — repo skeleton | 2026-09-02 | clean | 3/3 | smoke test only; CTest 1/1 |
@@ -14,6 +18,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M6 — concurrency + equivalence gate | 2026-09-02 | clean | 122/122 | `parallel_aggregate` (lock-free map/reduce); seq==par bit-identical (+ identical rendered JSON) for threads 1..64, with filters, tiny/empty input; CTest 1/1 |
 | M7 — benchmark + gen + memory | 2026-09-02 | clean | 133/133 | `gen` (deterministic synthetic dataset), `benchmark` (thread sweep, median phase time, speedup/efficiency/verdict), `peak_working_set_bytes`; `docs/PERFORMANCE.md` methodology; CTest 1/1 |
 | M8 — measured benchmarks + bottleneck fix | 2026-09-02 | clean | 133/133 | Release sweep captured in `docs/PERFORMANCE.md` (10.4x @ 32t on 432 MB, plateau ~1.6 GB/s; tiny-input sub-1.0x demo); transparent-hash string keys remove per-record allocations (−11..17% at 1–4 threads); equivalence gate still bit-exact; CTest 1/1 |
+| M9 — polish + v1.0 | 2026-09-02 | clean | 133/133 | README (why MT / work division / sync strategy / tradeoffs / methodology / limitations), ARCHITECTURE module table, expanded `--help`, `datasets/README.md`, version → 1.0.0, goldens regenerated; debug + release both warning-clean; CTest 1/1; tagged `v1.0` |
 
 ### Equivalence gate (SPEC section 6)
 
