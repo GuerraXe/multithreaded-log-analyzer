@@ -17,3 +17,6 @@ compile_commands.json
 # Generated datasets (large; produced by `loganalyzer gen` or CTest)
 /datasets/generated/
 /tests/data/large/
+/perf/
+*.log
+!tests/data/*.log

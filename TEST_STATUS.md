@@ -13,6 +13,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M5 — io: mmap + chunk splitter | 2026-09-02 | clean | 116/116 | `MappedFile` (Win32 mmap + fallback), newline-aligned `split_into_chunks`; `analyze` now reads via mmap; CTest 1/1 |
 | M6 — concurrency + equivalence gate | 2026-09-02 | clean | 122/122 | `parallel_aggregate` (lock-free map/reduce); seq==par bit-identical (+ identical rendered JSON) for threads 1..64, with filters, tiny/empty input; CTest 1/1 |
 | M7 — benchmark + gen + memory | 2026-09-02 | clean | 133/133 | `gen` (deterministic synthetic dataset), `benchmark` (thread sweep, median phase time, speedup/efficiency/verdict), `peak_working_set_bytes`; `docs/PERFORMANCE.md` methodology; CTest 1/1 |
+| M8 — measured benchmarks + bottleneck fix | 2026-09-02 | clean | 133/133 | Release sweep captured in `docs/PERFORMANCE.md` (10.4x @ 32t on 432 MB, plateau ~1.6 GB/s; tiny-input sub-1.0x demo); transparent-hash string keys remove per-record allocations (−11..17% at 1–4 threads); equivalence gate still bit-exact; CTest 1/1 |
 
 ### Equivalence gate (SPEC section 6)
 
@@ -186,3 +187,20 @@ Test files:
   sweep fallback, JSON render balance.
 - `core/process_info_tests.cpp` -- peak working set reported and non-zero on
   Windows.
+
+## Detail — M8
+
+No new test files; the change is a performance fix validated by the existing
+equivalence and aggregate suites.
+
+- Ran the Release benchmark sweep on the i9-13980HX; numbers, the scaling
+  analysis, the small-input regime, and the cold-cache note are written up
+  in `docs/PERFORMANCE.md`.
+- Bottleneck fix: `Aggregate::observe` no longer allocates a `std::string`
+  per record to probe the by-service / failures / endpoint / error-message
+  maps. New `src/aggregate/string_map.hpp` provides a transparent-hash
+  `StringMap<V>` and a `bump()` helper; the endpoint key is assembled into a
+  reused scratch buffer. Measured −17 % (1 thread) / −11 % (4 threads) on
+  the 5 M dataset; negligible once memory-bandwidth-bound. `merge` updated
+  to the transparent maps. All 133 tests, including the bit-exact
+  equivalence gate, still pass.

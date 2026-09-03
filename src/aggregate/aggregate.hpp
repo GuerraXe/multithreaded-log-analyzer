@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aggregate/endpoint_stat.hpp"
+#include "aggregate/string_map.hpp"
 #include "aggregate/time_buckets.hpp"
 #include "parse/log_format.hpp"
 #include "parse/log_record.hpp"
@@ -11,7 +12,6 @@
 #include <map>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace la {
@@ -42,16 +42,20 @@ struct Aggregate {
     std::array<std::uint64_t, kLevelCount> by_level{};
     std::array<std::uint64_t, 6> by_status_class{}; // index 1..5 used
     std::map<std::uint16_t, std::uint64_t> by_status;
-    std::unordered_map<std::string, std::uint64_t> by_service;
-    std::unordered_map<std::string, std::uint64_t> error_messages;
-    std::unordered_map<std::string, EndpointStat> endpoints;
-    std::unordered_map<std::string, std::uint64_t> failures_by_service;
+    StringMap<std::uint64_t> by_service;
+    StringMap<std::uint64_t> error_messages;
+    StringMap<EndpointStat> endpoints;
+    StringMap<std::uint64_t> failures_by_service;
     TimeBuckets time_buckets;
 
     // Bounded, kept sorted by line number ascending.
     std::vector<MalformedSample> malformed_samples;
     std::size_t sample_limit = 5;
     bool collect_durations = false;
+
+    // Reused scratch buffer for assembling the "METHOD /path" endpoint key,
+    // so a hit on an existing endpoint allocates nothing.
+    std::string endpoint_key_scratch;
 
     explicit Aggregate(std::int64_t interval_ms = 60'000, std::size_t sample_limit = 5,
                        bool collect_durations = false)

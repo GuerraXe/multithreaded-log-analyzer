@@ -21,21 +21,27 @@ void Aggregate::observe(const LogRecord& r) {
         if (cls >= 1 && cls <= 5) ++by_status_class[static_cast<std::size_t>(cls)];
     }
 
-    ++by_service[std::string(r.service)];
+    bump(by_service, r.service);
 
     if (level_index(r.level) >= level_index(Level::Error)) {
-        ++error_messages[std::string(r.message)];
+        bump(error_messages, r.message);
     }
 
     if (r.method != Method::None) {
-        std::string key(to_string(r.method));
-        key += ' ';
-        key.append(r.path);
-        endpoints[key].observe(r.duration_us, collect_durations);
+        endpoint_key_scratch.clear();
+        endpoint_key_scratch.append(to_string(r.method));
+        endpoint_key_scratch.push_back(' ');
+        endpoint_key_scratch.append(r.path);
+        const std::string_view key = endpoint_key_scratch;
+        auto it = endpoints.find(key);
+        if (it == endpoints.end()) {
+            it = endpoints.emplace(std::string(key), EndpointStat{}).first;
+        }
+        it->second.observe(r.duration_us, collect_durations);
     }
 
     const bool failure = is_failure(r);
-    if (failure) ++failures_by_service[std::string(r.service)];
+    if (failure) bump(failures_by_service, r.service);
     time_buckets.add(r.epoch_ms, failure);
 }
 
@@ -63,10 +69,17 @@ void Aggregate::merge(const Aggregate& other) {
     }
 
     for (const auto& [k, v] : other.by_status) by_status[k] += v;
-    for (const auto& [k, v] : other.by_service) by_service[k] += v;
-    for (const auto& [k, v] : other.error_messages) error_messages[k] += v;
-    for (const auto& [k, v] : other.endpoints) endpoints[k].merge(v);
-    for (const auto& [k, v] : other.failures_by_service) failures_by_service[k] += v;
+    for (const auto& [k, v] : other.by_service) bump(by_service, k, v);
+    for (const auto& [k, v] : other.error_messages) bump(error_messages, k, v);
+    for (const auto& [k, v] : other.failures_by_service) bump(failures_by_service, k, v);
+    for (const auto& [k, v] : other.endpoints) {
+        const auto it = endpoints.find(k);
+        if (it == endpoints.end()) {
+            endpoints.emplace(k, v);
+        } else {
+            it->second.merge(v);
+        }
+    }
 
     time_buckets.merge(other.time_buckets);
 
