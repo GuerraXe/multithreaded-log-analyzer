@@ -1,0 +1,15 @@
+# Normalize line endings: store text as LF in the repo, check out native.
+* text=auto
+
+*.cpp   text
+*.hpp   text
+*.h     text
+*.md    text
+*.json  text
+*.txt   text
+*.cmake text
+CMakeLists.txt text
+
+# Test fixtures: keep exact bytes so parser edge-case tests are meaningful.
+tests/data/**    -text
+datasets/**      -text
