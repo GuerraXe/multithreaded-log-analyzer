@@ -4,6 +4,8 @@
 add_executable(loganalyzer_tests
     support/runner_main.cpp
     smoke_test.cpp
+    io/mapped_file_tests.cpp
+    io/chunking_tests.cpp
     parse/timestamp_tests.cpp
     parse/log_record_tests.cpp
     parse/pipe_format_tests.cpp

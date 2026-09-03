@@ -2,6 +2,7 @@
 
 #include "aggregate/aggregator.hpp"
 #include "core/lines.hpp"
+#include "io/mapped_file.hpp"
 #include "parse/formats.hpp"
 #include "report/json_renderer.hpp"
 #include "report/text_renderer.hpp"
@@ -10,7 +11,6 @@
 #include <cstddef>
 #include <fstream>
 #include <ostream>
-#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -38,14 +38,12 @@ AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt,
 }
 
 int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
-    std::ifstream in(opt.input_path, std::ios::binary);
-    if (!in) {
-        err << "loganalyzer: cannot open '" << opt.input_path << "'\n";
+    const MappedFile file = MappedFile::open(opt.input_path);
+    if (!file) {
+        err << "loganalyzer: " << file.error() << "\n";
         return 2;
     }
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    const std::string buf = ss.str();
+    const std::string_view buf = file.data();
 
     const auto fmt = make_log_format(opt.format);
     if (!fmt) {

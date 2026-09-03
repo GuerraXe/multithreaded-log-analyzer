@@ -10,6 +10,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M2 — filters + CLI | 2026-09-02 | clean | 63/63 | RecordFilter + full analyze arg parsing; CTest 1/1 |
 | M3 — aggregation + text report | 2026-09-02 | clean | 93/93 | sequential aggregate + stats + text renderer + golden-file integration test; CTest 1/1 |
 | M4 — JSON report + strict + malformed samples | 2026-09-02 | clean | 103/103 | frozen JSON schema (`valid_small.expected.json`), `--exact-percentiles`, `--strict` exit 3; CTest 1/1 |
+| M5 — io: mmap + chunk splitter | 2026-09-02 | clean | 116/116 | `MappedFile` (Win32 mmap + fallback), newline-aligned `split_into_chunks`; `analyze` now reads via mmap; CTest 1/1 |
 
 ## Detail — M0
 
@@ -125,3 +126,27 @@ Test files added / extended:
 - `integration/analyze_text_test.cpp` -- JSON golden diff
   (`valid_small.expected.json`), `--strict` exit 3 with report still
   rendered.
+
+## Detail — M5
+
+Scope: `la_io`.
+- `MappedFile::open` -- Win32 `CreateFileMapping` / `MapViewOfFile`, with a
+  buffered-read fallback when mapping fails and a zero-length view for empty
+  files; non-Windows always uses the buffered read. Move-only; the move
+  re-points `data_` because the fallback buffer's address can change (SSO).
+- `split_into_chunks` -- at most `n` contiguous pieces, each split point
+  snapped forward to just past a `\n`; no empty chunks; exact cover; fewer
+  than `n` chunks for small / newline-sparse buffers.
+`run_analyze` now reads through `MappedFile` instead of an ifstream slurp.
+
+New fixtures: `empty.log` (0 bytes), `only_newlines.log`,
+`no_trailing_newline.log`, `crlf.log`.
+
+Test files:
+- `io/mapped_file_tests.cpp` -- exact bytes for a real file, empty file ok
+  with zero-length view, missing file error, CRLF preserved, move keeps the
+  view valid.
+- `io/chunking_tests.cpp` -- empty buffer, `n<=1`, forward-snap behaviour,
+  exact cover + interior-chunks-end-with-newline + no-empty-chunk invariants
+  for n=1..16, no-newline buffer, one long line not split, no trailing
+  newline, `n` > line count.
