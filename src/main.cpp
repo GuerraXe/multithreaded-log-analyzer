@@ -1,3 +1,4 @@
+#include "app/analyze.hpp"
 #include "app/version.hpp"
 
 #include <iostream>
@@ -35,7 +36,16 @@ int main(int argc, char** argv) {
         return print_usage(std::cout);
     }
 
-    // analyze / benchmark / gen are wired up in later milestones.
+    if (command == "analyze") {
+        if (argc < 3) {
+            std::cerr << "loganalyzer: analyze requires a <file> argument\n";
+            return 1;
+        }
+        // Option parsing (filters, --threads, --report) arrives in M2.
+        return la::run_analyze(argv[2], std::cout, std::cerr);
+    }
+
+    // benchmark / gen are wired up in later milestones.
     std::cerr << "loganalyzer: command '" << command << "' is not implemented yet\n";
     return 1;
 }
