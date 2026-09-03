@@ -10,7 +10,13 @@
 namespace la {
 
 unsigned resolve_thread_count(unsigned requested) {
-    if (requested != 0) return requested;
+    // Upper bound on workers. A pathological --threads / --threads-list value
+    // (e.g. 100000) would otherwise try to spawn that many std::jthreads; the
+    // std::system_error thrown when the OS refuses is unhandled and aborts the
+    // process. The ceiling sits far above any real core count and above the
+    // 1..64 range the equivalence suite pins, so results are unaffected.
+    constexpr unsigned kMaxThreads = 1024;
+    if (requested != 0) return requested < kMaxThreads ? requested : kMaxThreads;
     const unsigned hw = std::thread::hardware_concurrency();
     return hw == 0 ? 1u : hw;
 }
