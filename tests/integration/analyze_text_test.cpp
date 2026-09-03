@@ -59,6 +59,46 @@ TEST_CASE("integration: analyze text report matches the golden file") {
     }
 }
 
+TEST_CASE("integration: analyze JSON report matches the golden file") {
+    Options opt;
+    opt.command = Command::Analyze;
+    opt.input_path = kDataDir + "/valid_small.log";
+    opt.report = ReportFormat::Json;
+
+    std::ostringstream out, err;
+    const int code = run(opt, out, err);
+    CHECK_EQ(code, 0);
+    CHECK(err.str().empty());
+
+    const std::string expected = slurp(kDataDir + "/valid_small.expected.json");
+    CHECK(!expected.empty());
+    if (out.str() != expected) {
+        std::istringstream a(out.str());
+        std::istringstream b(expected);
+        std::string la_line, lb_line;
+        int n = 1;
+        while (std::getline(a, la_line) && std::getline(b, lb_line)) {
+            if (la_line != lb_line) {
+                throw la::test::Failure{"json line " + std::to_string(n) + ": got [" +
+                                        la_line + "] want [" + lb_line + "]"};
+            }
+            ++n;
+        }
+        throw la::test::Failure{"json length differs from golden"};
+    }
+}
+
+TEST_CASE("integration: --strict exits 3 when malformed lines are present") {
+    Options opt;
+    opt.command = Command::Analyze;
+    opt.input_path = kDataDir + "/valid_small.log"; // contains one bad line
+    opt.strict = true;
+    std::ostringstream out, err;
+    CHECK_EQ(run(opt, out, err), 3);
+    CHECK(!out.str().empty());   // the report is still rendered
+    CHECK(!err.str().empty());   // and a diagnostic is printed
+}
+
 TEST_CASE("integration: missing file exits 2") {
     Options opt;
     opt.command = Command::Analyze;

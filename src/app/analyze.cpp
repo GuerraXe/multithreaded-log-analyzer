@@ -3,9 +3,11 @@
 #include "aggregate/aggregator.hpp"
 #include "core/lines.hpp"
 #include "parse/formats.hpp"
+#include "report/json_renderer.hpp"
 #include "report/text_renderer.hpp"
 #include "stats/report.hpp"
 
+#include <cstddef>
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -51,9 +53,19 @@ int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
         return 1;
     }
 
+    if (opt.exact_percentiles && opt.threads > 1) {
+        err << "loganalyzer: --exact-percentiles forces single-threaded analysis\n";
+    }
+
+    AggregateOptions aopt;
+    aopt.interval_ms = opt.interval_ms;
+    aopt.malformed_sample_limit =
+        opt.show_malformed >= 0 ? static_cast<std::size_t>(opt.show_malformed) : 0;
+    aopt.collect_durations = opt.exact_percentiles;
+
     const RecordFilter filter(opt.filter);
-    const Aggregate agg = aggregate_buffer(buf, *fmt, filter, opt.interval_ms);
-    const Report rep = build_report(agg, opt.top_n);
+    const Aggregate agg = aggregate_buffer(buf, *fmt, filter, aopt);
+    const Report rep = build_report(agg, opt.top_n, opt.exact_percentiles);
 
     std::ofstream fout;
     std::ostream* dst = &out;
@@ -66,7 +78,17 @@ int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
         dst = &fout;
     }
 
-    render_text(rep, *dst); // JSON path added in M4
+    if (opt.report == ReportFormat::Json) {
+        render_json(rep, *dst);
+    } else {
+        render_text(rep, *dst);
+    }
+
+    if (opt.strict && agg.malformed > 0) {
+        err << "loganalyzer: " << agg.malformed
+            << " malformed line(s) present; failing due to --strict\n";
+        return 3;
+    }
     return 0;
 }
 

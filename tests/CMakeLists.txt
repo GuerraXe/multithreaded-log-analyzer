@@ -15,6 +15,7 @@ add_executable(loganalyzer_tests
     aggregate/aggregate_tests.cpp
     stats/report_tests.cpp
     report/text_renderer_tests.cpp
+    report/json_renderer_tests.cpp
     app/analyze_tests.cpp
     integration/analyze_text_test.cpp
 )

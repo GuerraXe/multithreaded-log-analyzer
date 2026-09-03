@@ -4,7 +4,7 @@
 
 namespace la {
 
-void EndpointStat::observe(std::int64_t duration_us) {
+void EndpointStat::observe(std::int64_t duration_us, bool keep_sample) {
     ++count;
     if (duration_us < 0) return;
 
@@ -14,6 +14,7 @@ void EndpointStat::observe(std::int64_t duration_us) {
     sum_us += duration_us;
     sum_sq_us += static_cast<double>(duration_us) * static_cast<double>(duration_us);
     hist.add(duration_us);
+    if (keep_sample) samples.push_back(duration_us);
 }
 
 void EndpointStat::merge(const EndpointStat& other) {
@@ -26,6 +27,7 @@ void EndpointStat::merge(const EndpointStat& other) {
     sum_us += other.sum_us;
     sum_sq_us += other.sum_sq_us;
     hist.merge(other.hist);
+    samples.insert(samples.end(), other.samples.begin(), other.samples.end());
 }
 
 double EndpointStat::mean_us() const {

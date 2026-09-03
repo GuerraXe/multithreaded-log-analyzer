@@ -1,0 +1,267 @@
+{
+  "tool": "loganalyzer 0.0.0",
+  "top_n": 10,
+  "exact_percentiles": false,
+  "input": {
+    "bytes": 1135,
+    "lines": 13,
+    "records": 12,
+    "kept": 12,
+    "malformed": 1,
+    "blank": 1
+  },
+  "severity": {
+    "TRACE": 0,
+    "DEBUG": 1,
+    "INFO": 5,
+    "WARN": 2,
+    "ERROR": 3,
+    "FATAL": 1,
+    "errors": 4,
+    "warnings": 2
+  },
+  "status_classes": {
+    "1xx": 0,
+    "2xx": 6,
+    "3xx": 1,
+    "4xx": 2,
+    "5xx": 1
+  },
+  "response_codes": [
+    {
+      "code": 200,
+      "count": 5
+    },
+    {
+      "code": 204,
+      "count": 1
+    },
+    {
+      "code": 304,
+      "count": 1
+    },
+    {
+      "code": 402,
+      "count": 2
+    },
+    {
+      "code": 500,
+      "count": 1
+    }
+  ],
+  "top_status_codes": [
+    {
+      "code": 200,
+      "count": 5
+    },
+    {
+      "code": 402,
+      "count": 2
+    },
+    {
+      "code": 204,
+      "count": 1
+    },
+    {
+      "code": 304,
+      "count": 1
+    },
+    {
+      "code": 500,
+      "count": 1
+    }
+  ],
+  "top_services": [
+    {
+      "service": "api-gateway",
+      "count": 6
+    },
+    {
+      "service": "order-service",
+      "count": 3
+    },
+    {
+      "service": "scheduler",
+      "count": 2
+    },
+    {
+      "service": "cache",
+      "count": 1
+    }
+  ],
+  "top_errors": [
+    {
+      "message": "payment declined",
+      "count": 2
+    },
+    {
+      "message": "upstream timeout",
+      "count": 1
+    },
+    {
+      "message": "worker pool exhausted",
+      "count": 1
+    }
+  ],
+  "failures_by_service": [
+    {
+      "service": "order-service",
+      "count": 3
+    },
+    {
+      "service": "scheduler",
+      "count": 1
+    }
+  ],
+  "busiest_endpoints": [
+    {
+      "endpoint": "GET /v1/users/42",
+      "count": 3,
+      "timed": 3,
+      "mean_ms": 7.8667,
+      "stddev_ms": 4.2944,
+      "min_ms": 2,
+      "max_ms": 12,
+      "p50_ms": 10,
+      "p90_ms": 20,
+      "p99_ms": 20
+    },
+    {
+      "endpoint": "POST /v1/checkout",
+      "count": 3,
+      "timed": 3,
+      "mean_ms": 455.7000,
+      "stddev_ms": 527.0235,
+      "min_ms": 78,
+      "max_ms": 1201,
+      "p50_ms": 100,
+      "p90_ms": 2000,
+      "p99_ms": 2000
+    },
+    {
+      "endpoint": "GET /v1/orders",
+      "count": 2,
+      "timed": 2,
+      "mean_ms": 271.8500,
+      "stddev_ms": 240.1500,
+      "min_ms": 32,
+      "max_ms": 512,
+      "p50_ms": 50,
+      "p90_ms": 1000,
+      "p99_ms": 1000
+    },
+    {
+      "endpoint": "GET /health",
+      "count": 1,
+      "timed": 1,
+      "mean_ms": 0.6000,
+      "stddev_ms": 0.0000,
+      "min_ms": 1,
+      "max_ms": 1,
+      "p50_ms": 1,
+      "p90_ms": 1,
+      "p99_ms": 1
+    },
+    {
+      "endpoint": "GET /v1/users/7",
+      "count": 1,
+      "timed": 1,
+      "mean_ms": 7.5000,
+      "stddev_ms": 0.0000,
+      "min_ms": 8,
+      "max_ms": 8,
+      "p50_ms": 10,
+      "p90_ms": 10,
+      "p99_ms": 10
+    }
+  ],
+  "slowest_endpoints": [
+    {
+      "endpoint": "POST /v1/checkout",
+      "count": 3,
+      "timed": 3,
+      "mean_ms": 455.7000,
+      "stddev_ms": 527.0235,
+      "min_ms": 78,
+      "max_ms": 1201,
+      "p50_ms": 100,
+      "p90_ms": 2000,
+      "p99_ms": 2000
+    },
+    {
+      "endpoint": "GET /v1/orders",
+      "count": 2,
+      "timed": 2,
+      "mean_ms": 271.8500,
+      "stddev_ms": 240.1500,
+      "min_ms": 32,
+      "max_ms": 512,
+      "p50_ms": 50,
+      "p90_ms": 1000,
+      "p99_ms": 1000
+    },
+    {
+      "endpoint": "GET /v1/users/42",
+      "count": 3,
+      "timed": 3,
+      "mean_ms": 7.8667,
+      "stddev_ms": 4.2944,
+      "min_ms": 2,
+      "max_ms": 12,
+      "p50_ms": 10,
+      "p90_ms": 20,
+      "p99_ms": 20
+    },
+    {
+      "endpoint": "GET /v1/users/7",
+      "count": 1,
+      "timed": 1,
+      "mean_ms": 7.5000,
+      "stddev_ms": 0.0000,
+      "min_ms": 8,
+      "max_ms": 8,
+      "p50_ms": 10,
+      "p90_ms": 10,
+      "p99_ms": 10
+    },
+    {
+      "endpoint": "GET /health",
+      "count": 1,
+      "timed": 1,
+      "mean_ms": 0.6000,
+      "stddev_ms": 0.0000,
+      "min_ms": 1,
+      "max_ms": 1,
+      "p50_ms": 1,
+      "p90_ms": 1,
+      "p99_ms": 1
+    }
+  ],
+  "timeline": {
+    "interval_ms": 60000,
+    "buckets": [
+      {
+        "start": "2026-03-01T09:00:00Z",
+        "requests": 7,
+        "errors": 3
+      },
+      {
+        "start": "2026-03-01T09:01:00Z",
+        "requests": 3,
+        "errors": 1
+      },
+      {
+        "start": "2026-03-01T09:02:00Z",
+        "requests": 2,
+        "errors": 0
+      }
+    ]
+  },
+  "malformed_samples": [
+    {
+      "line": 11,
+      "reason": "field_count",
+      "text": "this is not a valid log line"
+    }
+  ]
+}

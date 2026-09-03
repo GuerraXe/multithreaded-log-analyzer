@@ -1,5 +1,6 @@
 add_library(la_report STATIC
     text_renderer.cpp
+    json_renderer.cpp
 )
 target_include_directories(la_report PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_compile_features(la_report PUBLIC cxx_std_20)

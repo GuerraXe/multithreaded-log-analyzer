@@ -134,6 +134,21 @@ void render_text(const Report& r, std::ostream& os) {
                << " err=" << t.errors << "\n";
         }
     }
+
+    if (r.malformed > 0) {
+        char hdr[80];
+        std::snprintf(hdr, sizeof hdr, "malformed lines (showing %llu of %llu)",
+                      static_cast<unsigned long long>(r.malformed_samples.size()),
+                      static_cast<unsigned long long>(r.malformed));
+        section(os, hdr);
+        if (r.malformed_samples.empty()) {
+            os << "  (samples suppressed)\n";
+        } else {
+            for (const auto& m : r.malformed_samples) {
+                os << "  line " << m.line << " [" << m.reason << "] " << m.text << "\n";
+            }
+        }
+    }
 }
 
 } // namespace la

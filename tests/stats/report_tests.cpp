@@ -97,3 +97,39 @@ TEST_CASE("report: timeline is chronological") {
     CHECK_EQ(r.timeline[0].requests, std::uint64_t{7});
     CHECK_EQ(r.timeline[0].errors, std::uint64_t{3});
 }
+
+TEST_CASE("report: exact percentiles use real values, not histogram edges") {
+    AggregateOptions opt;
+    opt.collect_durations = true;
+    const Aggregate a = aggregate_buffer(kLog, kFmt, kAll, opt);
+
+    const Report edges = build_report(a, 10, /*exact=*/false);
+    const Report exact = build_report(a, 10, /*exact=*/true);
+
+    // GET /a durations: 10, 30, 50, 200 ms.
+    const EndpointRow* e_edges = nullptr;
+    const EndpointRow* e_exact = nullptr;
+    for (const auto& e : edges.busiest_endpoints)
+        if (e.endpoint == "GET /a") e_edges = &e;
+    for (const auto& e : exact.busiest_endpoints)
+        if (e.endpoint == "GET /a") e_exact = &e;
+    CHECK(e_edges != nullptr);
+    CHECK(e_exact != nullptr);
+
+    // Histogram p50 rounds up to a bucket edge (50ms); exact p50 is the
+    // 2nd-of-4 sample = 30ms.
+    CHECK_EQ(e_edges->p50_ms, std::int64_t{50});
+    CHECK_EQ(e_exact->p50_ms, std::int64_t{30});
+    CHECK_EQ(e_exact->p99_ms, std::int64_t{200}); // top sample
+}
+
+TEST_CASE("report: malformed samples pass through with reason slugs") {
+    std::string buf = kLog;
+    buf += "totally broken line\n";
+    AggregateOptions opt;
+    const Aggregate a = aggregate_buffer(buf, kFmt, kAll, opt);
+    const Report r = build_report(a, 10);
+    CHECK_EQ(r.malformed_samples.size(), std::size_t{1});
+    CHECK_EQ(r.malformed_samples[0].reason, std::string("field_count"));
+    CHECK(r.malformed_samples[0].line > 0);
+}

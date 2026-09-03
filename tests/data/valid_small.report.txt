@@ -58,3 +58,6 @@ traffic (1m buckets)
   2026-03-01T09:00:00Z  req=7 err=3
   2026-03-01T09:01:00Z  req=3 err=1
   2026-03-01T09:02:00Z  req=2 err=0
+
+malformed lines (showing 1 of 1)
+  line 11 [field_count] this is not a valid log line

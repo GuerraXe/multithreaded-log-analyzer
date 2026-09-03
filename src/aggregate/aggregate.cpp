@@ -1,5 +1,6 @@
 #include "aggregate/aggregate.hpp"
 
+#include <algorithm>
 #include <string>
 
 namespace la {
@@ -30,12 +31,22 @@ void Aggregate::observe(const LogRecord& r) {
         std::string key(to_string(r.method));
         key += ' ';
         key.append(r.path);
-        endpoints[key].observe(r.duration_us);
+        endpoints[key].observe(r.duration_us, collect_durations);
     }
 
     const bool failure = is_failure(r);
     if (failure) ++failures_by_service[std::string(r.service)];
     time_buckets.add(r.epoch_ms, failure);
+}
+
+void Aggregate::note_malformed(std::uint64_t line, ParseError reason, std::string_view raw) {
+    ++malformed;
+    if (malformed_samples.size() >= sample_limit) return;
+
+    if (!raw.empty() && raw.back() == '\r') raw.remove_suffix(1);
+    if (raw.size() > 256) raw = raw.substr(0, 256);
+    // Scan is in file order, so appending keeps the vector sorted by line.
+    malformed_samples.push_back({line, reason, std::string(raw)});
 }
 
 void Aggregate::merge(const Aggregate& other) {
@@ -58,6 +69,22 @@ void Aggregate::merge(const Aggregate& other) {
     for (const auto& [k, v] : other.failures_by_service) failures_by_service[k] += v;
 
     time_buckets.merge(other.time_buckets);
+
+    // Merge two line-sorted sample lists, keep the earliest up to the limit.
+    std::vector<MalformedSample> merged;
+    const std::size_t limit = std::max(sample_limit, other.sample_limit);
+    merged.reserve(std::min(limit, malformed_samples.size() + other.malformed_samples.size()));
+    std::size_t i = 0, j = 0;
+    while (merged.size() < limit &&
+           (i < malformed_samples.size() || j < other.malformed_samples.size())) {
+        const bool take_left =
+            j >= other.malformed_samples.size() ||
+            (i < malformed_samples.size() &&
+             malformed_samples[i].line <= other.malformed_samples[j].line);
+        merged.push_back(take_left ? malformed_samples[i++] : other.malformed_samples[j++]);
+    }
+    malformed_samples = std::move(merged);
+    sample_limit = limit;
 }
 
 } // namespace la

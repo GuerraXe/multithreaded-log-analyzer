@@ -41,6 +41,12 @@ struct TimeRow {
     std::uint64_t errors = 0;
 };
 
+struct MalformedRow {
+    std::uint64_t line = 0;
+    std::string reason; // reason_code slug
+    std::string text;
+};
+
 // The fully-computed, render-ready analysis result. Pure data: no formatting
 // decisions, no I/O. Every ranked list is already sorted with the SPEC's total
 // order (value descending, then key ascending) so output does not depend on
@@ -66,11 +72,16 @@ struct Report {
     std::vector<EndpointRow> busiest_endpoints; // by count desc
     std::vector<EndpointRow> slowest_endpoints; // by mean desc, timed >= 1
     std::vector<TimeRow> timeline;              // ascending by bucket start
+    std::vector<MalformedRow> malformed_samples;
 
     std::int64_t interval_ms = 60'000;
     int top_n = 10;
+    bool exact_percentiles = false;
 };
 
-Report build_report(const Aggregate& agg, int top_n);
+// `exact_percentiles` selects sorted-sample percentiles over histogram-edge
+// percentiles; it requires that the Aggregate was built with duration
+// retention (AggregateOptions::collect_durations).
+Report build_report(const Aggregate& agg, int top_n, bool exact_percentiles = false);
 
 } // namespace la

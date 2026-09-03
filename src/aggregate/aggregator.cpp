@@ -5,11 +5,13 @@
 namespace la {
 
 Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
-                           const RecordFilter& filter, std::int64_t interval_ms) {
-    Aggregate agg(interval_ms);
+                           const RecordFilter& filter, const AggregateOptions& opt) {
+    Aggregate agg(opt.interval_ms, opt.malformed_sample_limit, opt.collect_durations);
     agg.bytes = buffer.size();
 
+    std::uint64_t line_no = 0;
     for_each_line(buffer, [&](std::string_view line) {
+        ++line_no;
         if (is_blank_line(line)) {
             ++agg.blank;
             return;
@@ -17,7 +19,7 @@ Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
         ++agg.total_lines;
         const ParseResult r = fmt.parse_line(line);
         if (!r.ok) {
-            ++agg.malformed;
+            agg.note_malformed(line_no, r.error, line);
             return;
         }
         ++agg.records;
@@ -25,6 +27,13 @@ Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
     });
 
     return agg;
+}
+
+Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
+                           const RecordFilter& filter, std::int64_t interval_ms) {
+    AggregateOptions opt;
+    opt.interval_ms = interval_ms;
+    return aggregate_buffer(buffer, fmt, filter, opt);
 }
 
 } // namespace la

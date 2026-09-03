@@ -9,6 +9,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M1 — parser | 2026-09-02 | clean | 38/38 | timestamp + pipe format + analyze_buffer; CTest 1/1 |
 | M2 — filters + CLI | 2026-09-02 | clean | 63/63 | RecordFilter + full analyze arg parsing; CTest 1/1 |
 | M3 — aggregation + text report | 2026-09-02 | clean | 93/93 | sequential aggregate + stats + text renderer + golden-file integration test; CTest 1/1 |
+| M4 — JSON report + strict + malformed samples | 2026-09-02 | clean | 103/103 | frozen JSON schema (`valid_small.expected.json`), `--exact-percentiles`, `--strict` exit 3; CTest 1/1 |
 
 ## Detail — M0
 
@@ -101,3 +102,26 @@ Test files:
 - `integration/analyze_text_test.cpp` — full `run()` pipeline over
   `tests/data/valid_small.log` diffed against `valid_small.report.txt`
   (golden, LF endings); missing-file exit code 2.
+
+## Detail — M4
+
+Scope: malformed-line samples (`Aggregate::malformed_samples`, bounded by
+`--show-malformed`, line-sorted, merged as a bounded merge of two sorted
+lists); `--exact-percentiles` (retain per-endpoint durations in
+`EndpointStat::samples`, nearest-rank percentiles in `build_report`);
+`--strict` (exit 3 after still rendering the report); `la_report`'s
+`render_json` -- a hand-rolled streaming JSON writer producing a
+pretty-printed, ASCII, LF object. JSON schema frozen: latency-ms sentinels
+render as `null`. Text report gained a "malformed lines" section.
+
+Test files added / extended:
+- `aggregate/aggregate_tests.cpp` -- malformed sample line/reason/bounding,
+  `collect_durations` sample retention, bounded sorted sample merge.
+- `stats/report_tests.cpp` -- exact vs histogram-edge percentiles on a known
+  set, malformed-sample passthrough with reason slugs.
+- `report/json_renderer_tests.cpp` -- `json_quote` escaping (incl. control
+  chars), empty-report well-formedness + balanced braces + empty-array
+  collapse, latency `null` sentinels.
+- `integration/analyze_text_test.cpp` -- JSON golden diff
+  (`valid_small.expected.json`), `--strict` exit 3 with report still
+  rendered.

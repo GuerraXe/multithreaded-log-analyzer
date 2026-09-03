@@ -92,6 +92,57 @@ TEST_CASE("aggregate: time buckets") {
     CHECK_EQ(b.at(m0).errors, std::uint64_t{1});
 }
 
+TEST_CASE("aggregate: malformed samples carry line number and reason, bounded") {
+    std::string buf;
+    buf += "2026-01-01T00:00:00Z | INFO | api | GET /a | 200 | 1.0 | ok\n"; // line 1 ok
+    buf += "bad one\n";                                                       // line 2
+    buf += "2026-01-01T00:00:01Z | NOPE | api |  |  |  | x\n";                // line 3 level
+    buf += "2026-01-01T00:00:02Z | INFO | api |  | 999 |  | x\n";             // line 4 status
+    buf += "also bad\n";                                                      // line 5
+
+    AggregateOptions opt;
+    opt.malformed_sample_limit = 2;
+    const Aggregate a = aggregate_buffer(buf, kFmt, kAll, opt);
+
+    CHECK_EQ(a.malformed, std::uint64_t{4});         // count is exact
+    CHECK_EQ(a.malformed_samples.size(), std::size_t{2}); // samples are bounded
+    CHECK_EQ(a.malformed_samples[0].line, std::uint64_t{2});
+    CHECK(a.malformed_samples[0].reason == ParseError::FieldCount);
+    CHECK_EQ(a.malformed_samples[1].line, std::uint64_t{3});
+    CHECK(a.malformed_samples[1].reason == ParseError::Level);
+}
+
+TEST_CASE("aggregate: collect_durations retains per-endpoint samples") {
+    std::string buf;
+    buf += "2026-01-01T00:00:00Z | INFO | api | GET /a | 200 | 10.0 | ok\n";
+    buf += "2026-01-01T00:00:01Z | INFO | api | GET /a | 200 | 20.0 | ok\n";
+
+    AggregateOptions opt;
+    opt.collect_durations = true;
+    const Aggregate a = aggregate_buffer(buf, kFmt, kAll, opt);
+    const auto& s = a.endpoints.at("GET /a").samples;
+    CHECK_EQ(s.size(), std::size_t{2});
+    CHECK_EQ(s[0], std::int64_t{10'000});
+    CHECK_EQ(s[1], std::int64_t{20'000});
+}
+
+TEST_CASE("aggregate: malformed sample merge keeps earliest lines, sorted") {
+    Aggregate a(60'000, 3);
+    a.note_malformed(10, ParseError::Timestamp, "ten");
+    a.note_malformed(30, ParseError::Level, "thirty");
+
+    Aggregate b(60'000, 3);
+    b.note_malformed(5, ParseError::Status, "five");
+    b.note_malformed(20, ParseError::Request, "twenty");
+
+    a.merge(b);
+    CHECK_EQ(a.malformed, std::uint64_t{4});
+    CHECK_EQ(a.malformed_samples.size(), std::size_t{3});
+    CHECK_EQ(a.malformed_samples[0].line, std::uint64_t{5});
+    CHECK_EQ(a.malformed_samples[1].line, std::uint64_t{10});
+    CHECK_EQ(a.malformed_samples[2].line, std::uint64_t{20});
+}
+
 TEST_CASE("aggregate: merge of split halves equals whole (order-independent)") {
     const std::string s = kLog;
     // Split on a newline boundary roughly in the middle.

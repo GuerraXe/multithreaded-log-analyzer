@@ -1,7 +1,12 @@
 #include "stats/report.hpp"
 
+#include "parse/log_format.hpp"
+
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace la {
 namespace {
@@ -38,16 +43,37 @@ std::vector<CountRow> ranked(const Map& m, int n) {
     return v;
 }
 
-EndpointRow to_row(const std::string& endpoint, const EndpointStat& st) {
+// Nearest-rank percentile over a sorted ascending sample vector, in
+// microseconds. Matches the histogram's rank convention: the p-th percentile
+// is the ceil(p/100 * n)-th sample.
+std::int64_t exact_percentile_us(const std::vector<std::int64_t>& sorted, double p) {
+    if (sorted.empty()) return -1;
+    const double n = static_cast<double>(sorted.size());
+    std::size_t rank = static_cast<std::size_t>(std::ceil((p / 100.0) * n));
+    if (rank == 0) rank = 1;
+    if (rank > sorted.size()) rank = sorted.size();
+    return sorted[rank - 1];
+}
+
+EndpointRow to_row(const std::string& endpoint, const EndpointStat& st, bool exact) {
     EndpointRow r;
     r.endpoint = endpoint;
     r.count = st.count;
     r.timed = st.timed;
-    if (st.timed > 0) {
-        r.mean_ms = st.mean_us() / 1000.0;
-        r.stddev_ms = st.stddev_us() / 1000.0;
-        r.min_ms = us_to_ms_round(st.min_us);
-        r.max_ms = us_to_ms_round(st.max_us);
+    if (st.timed == 0) return r;
+
+    r.mean_ms = st.mean_us() / 1000.0;
+    r.stddev_ms = st.stddev_us() / 1000.0;
+    r.min_ms = us_to_ms_round(st.min_us);
+    r.max_ms = us_to_ms_round(st.max_us);
+
+    if (exact && !st.samples.empty()) {
+        std::vector<std::int64_t> sorted = st.samples;
+        std::sort(sorted.begin(), sorted.end());
+        r.p50_ms = us_to_ms_round(exact_percentile_us(sorted, 50.0));
+        r.p90_ms = us_to_ms_round(exact_percentile_us(sorted, 90.0));
+        r.p99_ms = us_to_ms_round(exact_percentile_us(sorted, 99.0));
+    } else {
         r.p50_ms = edge_to_ms(st.hist.percentile_us(50.0));
         r.p90_ms = edge_to_ms(st.hist.percentile_us(90.0));
         r.p99_ms = edge_to_ms(st.hist.percentile_us(99.0));
@@ -57,9 +83,10 @@ EndpointRow to_row(const std::string& endpoint, const EndpointStat& st) {
 
 } // namespace
 
-Report build_report(const Aggregate& agg, int top_n) {
+Report build_report(const Aggregate& agg, int top_n, bool exact_percentiles) {
     Report rep;
     rep.top_n = top_n;
+    rep.exact_percentiles = exact_percentiles;
     rep.interval_ms = agg.time_buckets.interval_ms();
 
     rep.total_lines = agg.total_lines;
@@ -91,7 +118,7 @@ Report build_report(const Aggregate& agg, int top_n) {
     // Endpoint rows: build once, then produce two orderings.
     std::vector<EndpointRow> rows;
     rows.reserve(agg.endpoints.size());
-    for (const auto& [key, st] : agg.endpoints) rows.push_back(to_row(key, st));
+    for (const auto& [key, st] : agg.endpoints) rows.push_back(to_row(key, st, exact_percentiles));
 
     std::vector<EndpointRow> busiest = rows;
     std::sort(busiest.begin(), busiest.end(), [](const EndpointRow& a, const EndpointRow& b) {
@@ -118,6 +145,10 @@ Report build_report(const Aggregate& agg, int top_n) {
 
     for (const auto& [start, counts] : agg.time_buckets.buckets()) {
         rep.timeline.push_back({start, counts.requests, counts.errors});
+    }
+
+    for (const MalformedSample& m : agg.malformed_samples) {
+        rep.malformed_samples.push_back({m.line, std::string(reason_code(m.reason)), m.text});
     }
 
     return rep;
