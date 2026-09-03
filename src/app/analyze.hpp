@@ -1,5 +1,6 @@
 #pragma once
 
+#include "filter/record_filter.hpp"
 #include "parse/log_format.hpp"
 
 #include <cstdint>
@@ -13,19 +14,22 @@ namespace la {
 struct AnalyzeSummary {
     std::uint64_t lines = 0;     // non-blank lines examined
     std::uint64_t records = 0;   // lines that parsed successfully
+    std::uint64_t kept = 0;      // parsed records that passed the filter
     std::uint64_t malformed = 0; // non-blank lines that failed to parse
     std::uint64_t blank = 0;     // empty / whitespace-only lines
     std::uint64_t bytes = 0;     // size of the scanned buffer
 };
 
 // Scan an in-memory buffer, splitting on '\n'. Pure: no file or console I/O.
-// A final line without a trailing newline is still processed.
-AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt);
+// A final line without a trailing newline is still processed. `filter` is
+// applied to every successfully parsed record to compute `kept`.
+AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt,
+                              const RecordFilter& filter);
 
-// Read `path` into memory, run analyze_buffer with the default format, and
-// write a short summary to `out`. Returns a process exit code:
-//   0  success
-//   2  the file could not be opened
-int run_analyze(const std::string& path, std::ostream& out, std::ostream& err);
+// Read `path` into memory, run analyze_buffer with the default format and the
+// given filter, and write a short summary to `out`. Returns a process exit
+// code: 0 on success, 2 if the file could not be opened.
+int run_analyze(const std::string& path, const RecordFilter& filter,
+                std::ostream& out, std::ostream& err);
 
 } // namespace la

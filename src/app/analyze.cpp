@@ -14,7 +14,7 @@ namespace {
 
 // Invoke `fn` once per line in `buf`, splitting on '\n'. A trailing '\n' does
 // not yield a final empty line; a missing trailing '\n' still yields the last
-// line. This is the temporary M1 line iterator; M5 replaces it with the
+// line. This is the temporary M1/M2 line iterator; M5 replaces it with the
 // memory-mapped, chunk-aware iterator in the `io` module.
 template <typename F>
 void for_each_line(std::string_view buf, F&& fn) {
@@ -32,7 +32,8 @@ void for_each_line(std::string_view buf, F&& fn) {
 
 } // namespace
 
-AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt) {
+AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt,
+                              const RecordFilter& filter) {
     AnalyzeSummary s;
     s.bytes = buffer.size();
     for_each_line(buffer, [&](std::string_view line) {
@@ -41,16 +42,19 @@ AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt) {
             return;
         }
         ++s.lines;
-        if (fmt.parse_line(line).ok) {
-            ++s.records;
-        } else {
+        const ParseResult r = fmt.parse_line(line);
+        if (!r.ok) {
             ++s.malformed;
+            return;
         }
+        ++s.records;
+        if (filter.matches(r.record)) ++s.kept;
     });
     return s;
 }
 
-int run_analyze(const std::string& path, std::ostream& out, std::ostream& err) {
+int run_analyze(const std::string& path, const RecordFilter& filter,
+                std::ostream& out, std::ostream& err) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
         err << "loganalyzer: cannot open '" << path << "'\n";
@@ -61,12 +65,13 @@ int run_analyze(const std::string& path, std::ostream& out, std::ostream& err) {
     const std::string buf = ss.str();
 
     const auto fmt = make_log_format("pipe");
-    const AnalyzeSummary s = analyze_buffer(buf, *fmt);
+    const AnalyzeSummary s = analyze_buffer(buf, *fmt, filter);
 
     out << "file        " << path << "\n"
         << "bytes       " << s.bytes << "\n"
         << "lines       " << s.lines << "\n"
         << "records     " << s.records << "\n"
+        << "kept        " << s.kept << "\n"
         << "malformed   " << s.malformed << "\n"
         << "blank       " << s.blank << "\n";
     return 0;

@@ -7,6 +7,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 |---|---|---|---|---|
 | M0 — repo skeleton | 2026-09-02 | clean | 3/3 | smoke test only; CTest 1/1 |
 | M1 — parser | 2026-09-02 | clean | 38/38 | timestamp + pipe format + analyze_buffer; CTest 1/1 |
+| M2 — filters + CLI | 2026-09-02 | clean | 63/63 | RecordFilter + full analyze arg parsing; CTest 1/1 |
 
 ## Detail — M0
 
@@ -45,3 +46,25 @@ Test files:
 
 Note: `LogRecord` string fields are views into the parsed buffer; tests hold
 the line text in a named local (`Parsed` helper) for the result's lifetime.
+
+## Detail — M2
+
+Scope: `la_filter` (`FilterSpec` + compiled `RecordFilter` predicate) and
+`la_cli` (`parse_args` -> `Options`, covering every documented `analyze`
+flag plus benchmark/gen flags for later use). `app/run.cpp` dispatches
+parsed commands; `main.cpp` is now a thin shell. `analyze_buffer` gained a
+filter argument and a `kept` count.
+
+Test files:
+- `filter/record_filter_tests.cpp` — pass-through; half-open time range;
+  `--level` threshold; `--level-only` exact set; service OR; status-class
+  OR with missing-status exclusion; path prefix / substring with
+  no-path exclusion; AND across categories; `is_pass_through`.
+- `cli/parser_tests.cpp` — no command, version/help + topic, unknown
+  command, file-arg arity, defaults, `--threads` validation (incl.
+  negative and missing value), level filters incl. `--level-only`
+  overriding `--level`, time bounds, `--status-class` Nxx/N/invalid,
+  repeated `--service`, `--interval` units (s/m/h/bare), `--report`,
+  `--top`, boolean flags + `-o`, unknown option.
+- `app/analyze_tests.cpp` — updated for the filter argument; added a
+  filter-narrows-`kept` case.

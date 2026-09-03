@@ -7,6 +7,8 @@ add_executable(loganalyzer_tests
     parse/timestamp_tests.cpp
     parse/log_record_tests.cpp
     parse/pipe_format_tests.cpp
+    filter/record_filter_tests.cpp
+    cli/parser_tests.cpp
     app/analyze_tests.cpp
 )
 target_compile_features(loganalyzer_tests PRIVATE cxx_std_20)
