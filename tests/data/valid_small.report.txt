@@ -1,0 +1,60 @@
+loganalyzer 0.0.0 — analysis report
+
+input
+  bytes                1135
+  lines (non-blank)    13
+  parsed records       12
+  kept (after filters) 12
+  malformed lines      1
+  blank lines          1
+
+severity
+  TRACE          0
+  DEBUG          1
+  INFO           5
+  WARN           2
+  ERROR          3
+  FATAL          1
+  errors=4  warnings=2
+
+response codes
+  200  5
+  204  1
+  304  1
+  402  2
+  500  1
+  classes: 1xx=0 2xx=6 3xx=1 4xx=2 5xx=1
+
+top services (by volume)
+         6  api-gateway
+         3  order-service
+         2  scheduler
+         1  cache
+
+top errors (level >= ERROR)
+         2  payment declined
+         1  upstream timeout
+         1  worker pool exhausted
+
+failures by service (level >= ERROR or 5xx)
+         3  order-service
+         1  scheduler
+
+busiest endpoints
+         3  GET /v1/users/42  mean=7.9ms p50=10 p90=20 p99=20 max=12
+         3  POST /v1/checkout  mean=455.7ms p50=100 p90=2000 p99=2000 max=1201
+         2  GET /v1/orders  mean=271.9ms p50=50 p90=1000 p99=1000 max=512
+         1  GET /health  mean=0.6ms p50=1 p90=1 p99=1 max=1
+         1  GET /v1/users/7  mean=7.5ms p50=10 p90=10 p99=10 max=8
+
+slowest endpoints (by mean latency)
+  455.7ms  POST /v1/checkout  n=3 p90=2000 p99=2000
+  271.9ms  GET /v1/orders  n=2 p90=1000 p99=1000
+  7.9ms  GET /v1/users/42  n=3 p90=20 p99=20
+  7.5ms  GET /v1/users/7  n=1 p90=10 p99=10
+  0.6ms  GET /health  n=1 p90=1 p99=1
+
+traffic (1m buckets)
+  2026-03-01T09:00:00Z  req=7 err=3
+  2026-03-01T09:01:00Z  req=3 err=1
+  2026-03-01T09:02:00Z  req=2 err=0

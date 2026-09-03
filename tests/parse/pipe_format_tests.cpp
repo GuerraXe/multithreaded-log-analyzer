@@ -60,7 +60,7 @@ TEST_CASE("pipe: fully populated HTTP line") {
     CHECK(p.r.record.method == Method::Get);
     CHECK_EQ(std::string(p.r.record.path), std::string("/v1/users/42"));
     CHECK_EQ(p.r.record.status, std::uint16_t{200});
-    CHECK_EQ(p.r.record.duration_us, std::int64_t{13'400'000});
+    CHECK_EQ(p.r.record.duration_us, std::int64_t{13'400}); // 13.4 ms
     CHECK_EQ(std::string(p.r.record.message), std::string("request completed"));
 }
 
@@ -117,7 +117,7 @@ TEST_CASE("pipe: surrounding whitespace on fields is trimmed") {
     CHECK_EQ(std::string(p.r.record.service), std::string("svc"));
     CHECK_EQ(std::string(p.r.record.path), std::string("/x")); // field trimmed before split
     CHECK_EQ(p.r.record.status, std::uint16_t{200});
-    CHECK_EQ(p.r.record.duration_us, std::int64_t{13'400'000});
+    CHECK_EQ(p.r.record.duration_us, std::int64_t{13'400});
     CHECK_EQ(std::string(p.r.record.message), std::string("hi"));
 }
 
@@ -171,21 +171,21 @@ TEST_CASE("pipe: duration parsing and rejection") {
     CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0", "m")}.r.record.duration_us,
              std::int64_t{0});
     CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "12", "m")}.r.record.duration_us,
-             std::int64_t{12'000'000});
+             std::int64_t{12'000}); // 12 ms
     CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "13.4", "m")}.r.record.duration_us,
-             std::int64_t{13'400'000});
-    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "1.0005", "m")}.r.record.duration_us,
-             std::int64_t{1'000'500});
+             std::int64_t{13'400}); // 13.4 ms
+    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.25", "m")}.r.record.duration_us,
+             std::int64_t{250}); // 0.25 ms
 }
 
 TEST_CASE("pipe: sub-microsecond duration rounds half to even") {
-    // 7th fractional digit is the decider; exact ties go to the even neighbour.
-    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0000005", "m")}.r.record.duration_us,
-             std::int64_t{0}); // 0 is even -> stays
-    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0000015", "m")}.r.record.duration_us,
-             std::int64_t{2}); // 1 is odd -> up to 2
-    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0000025", "m")}.r.record.duration_us,
-             std::int64_t{2}); // 2 is even -> stays
-    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.00000051", "m")}.r.record.duration_us,
+    // The 4th fractional (ms) digit is the decider; exact ties go to even.
+    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0005", "m")}.r.record.duration_us,
+             std::int64_t{0}); // 0 us is even -> stays
+    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0015", "m")}.r.record.duration_us,
+             std::int64_t{2}); // 1 us is odd -> up to 2
+    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.0025", "m")}.r.record.duration_us,
+             std::int64_t{2}); // 2 us is even -> stays
+    CHECK_EQ(Parsed{line6(kTs, "INFO", "svc", "", "", "0.00051", "m")}.r.record.duration_us,
              std::int64_t{1}); // past the tie -> up to 1
 }

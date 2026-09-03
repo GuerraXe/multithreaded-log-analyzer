@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace la {
@@ -17,5 +18,10 @@ namespace la {
 // std::nullopt if the input does not match the grammar or encodes an invalid
 // calendar date or wall-clock time.
 std::optional<std::int64_t> parse_timestamp(std::string_view s);
+
+// Format epoch milliseconds back to "YYYY-MM-DDThh:mm:ss[.fff]Z". The
+// fractional part is emitted only when the millisecond component is non-zero.
+// Inverse of parse_timestamp for all representable instants.
+std::string format_timestamp(std::int64_t epoch_ms);
 
 } // namespace la

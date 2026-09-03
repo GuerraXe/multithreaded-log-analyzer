@@ -1,6 +1,7 @@
 #include "parse/timestamp.hpp"
 
 #include <cstddef>
+#include <cstdio>
 
 namespace la {
 namespace {
@@ -43,6 +44,20 @@ constexpr std::int64_t days_from_civil(std::int64_t y, unsigned m, unsigned d) {
     const unsigned doy = (153u * (m > 2 ? m - 3 : m + 9) + 2u) / 5u + d - 1u;
     const unsigned doe = yoe * 365u + yoe / 4u - yoe / 100u + doy;
     return era * 146097 + static_cast<std::int64_t>(doe) - 719468;
+}
+
+// Inverse of days_from_civil. (Howard Hinnant, same source.)
+constexpr void civil_from_days(std::int64_t z, int& y, unsigned& m, unsigned& d) {
+    z += 719468;
+    const std::int64_t era = (z >= 0 ? z : z - 146096) / 146097;
+    const unsigned doe = static_cast<unsigned>(z - era * 146097);
+    const unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    const std::int64_t y0 = static_cast<std::int64_t>(yoe) + era * 400;
+    const unsigned doy = doe - (365u * yoe + yoe / 4u - yoe / 100u);
+    const unsigned mp = (5u * doy + 2u) / 153u;
+    d = doy - (153u * mp + 2u) / 5u + 1u;
+    m = mp < 10 ? mp + 3 : mp - 9;
+    y = static_cast<int>(y0 + (m <= 2));
 }
 
 } // namespace
@@ -89,6 +104,39 @@ std::optional<std::int64_t> parse_timestamp(std::string_view s) {
         year, static_cast<unsigned>(mon), static_cast<unsigned>(day));
     const std::int64_t secs = days * 86400 + hh * 3600 + mm * 60 + ss;
     return secs * 1000 + frac_ms;
+}
+
+std::string format_timestamp(std::int64_t epoch_ms) {
+    std::int64_t ms = epoch_ms % 1000;
+    std::int64_t secs = epoch_ms / 1000;
+    if (ms < 0) {
+        ms += 1000;
+        secs -= 1;
+    }
+    std::int64_t days = secs / 86400;
+    std::int64_t sod = secs % 86400; // seconds of day
+    if (sod < 0) {
+        sod += 86400;
+        days -= 1;
+    }
+
+    int y = 0;
+    unsigned mo = 0, d = 0;
+    civil_from_days(days, y, mo, d);
+
+    const int hh = static_cast<int>(sod / 3600);
+    const int mm = static_cast<int>((sod % 3600) / 60);
+    const int ss = static_cast<int>(sod % 60);
+
+    char buf[40];
+    if (ms != 0) {
+        std::snprintf(buf, sizeof buf, "%04d-%02u-%02uT%02d:%02d:%02d.%03dZ", y, mo,
+                      d, hh, mm, ss, static_cast<int>(ms));
+    } else {
+        std::snprintf(buf, sizeof buf, "%04d-%02u-%02uT%02d:%02d:%02dZ", y, mo, d, hh,
+                      mm, ss);
+    }
+    return buf;
 }
 
 } // namespace la

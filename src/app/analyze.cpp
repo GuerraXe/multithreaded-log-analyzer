@@ -1,8 +1,11 @@
 #include "app/analyze.hpp"
 
+#include "aggregate/aggregator.hpp"
+#include "core/lines.hpp"
 #include "parse/formats.hpp"
+#include "report/text_renderer.hpp"
+#include "stats/report.hpp"
 
-#include <cstddef>
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -10,27 +13,6 @@
 #include <string_view>
 
 namespace la {
-namespace {
-
-// Invoke `fn` once per line in `buf`, splitting on '\n'. A trailing '\n' does
-// not yield a final empty line; a missing trailing '\n' still yields the last
-// line. This is the temporary M1/M2 line iterator; M5 replaces it with the
-// memory-mapped, chunk-aware iterator in the `io` module.
-template <typename F>
-void for_each_line(std::string_view buf, F&& fn) {
-    std::size_t start = 0;
-    while (start < buf.size()) {
-        const std::size_t nl = buf.find('\n', start);
-        if (nl == std::string_view::npos) {
-            fn(buf.substr(start));
-            return;
-        }
-        fn(buf.substr(start, nl - start));
-        start = nl + 1;
-    }
-}
-
-} // namespace
 
 AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt,
                               const RecordFilter& filter) {
@@ -53,27 +35,38 @@ AnalyzeSummary analyze_buffer(std::string_view buffer, const ILogFormat& fmt,
     return s;
 }
 
-int run_analyze(const std::string& path, const RecordFilter& filter,
-                std::ostream& out, std::ostream& err) {
-    std::ifstream in(path, std::ios::binary);
+int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
+    std::ifstream in(opt.input_path, std::ios::binary);
     if (!in) {
-        err << "loganalyzer: cannot open '" << path << "'\n";
+        err << "loganalyzer: cannot open '" << opt.input_path << "'\n";
         return 2;
     }
     std::ostringstream ss;
     ss << in.rdbuf();
     const std::string buf = ss.str();
 
-    const auto fmt = make_log_format("pipe");
-    const AnalyzeSummary s = analyze_buffer(buf, *fmt, filter);
+    const auto fmt = make_log_format(opt.format);
+    if (!fmt) {
+        err << "loganalyzer: unknown format '" << opt.format << "'\n";
+        return 1;
+    }
 
-    out << "file        " << path << "\n"
-        << "bytes       " << s.bytes << "\n"
-        << "lines       " << s.lines << "\n"
-        << "records     " << s.records << "\n"
-        << "kept        " << s.kept << "\n"
-        << "malformed   " << s.malformed << "\n"
-        << "blank       " << s.blank << "\n";
+    const RecordFilter filter(opt.filter);
+    const Aggregate agg = aggregate_buffer(buf, *fmt, filter, opt.interval_ms);
+    const Report rep = build_report(agg, opt.top_n);
+
+    std::ofstream fout;
+    std::ostream* dst = &out;
+    if (!opt.output_path.empty()) {
+        fout.open(opt.output_path, std::ios::binary);
+        if (!fout) {
+            err << "loganalyzer: cannot write '" << opt.output_path << "'\n";
+            return 2;
+        }
+        dst = &fout;
+    }
+
+    render_text(rep, *dst); // JSON path added in M4
     return 0;
 }
 

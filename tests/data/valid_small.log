@@ -1,0 +1,14 @@
+2026-03-01T09:00:00.100Z | INFO | api-gateway | GET /v1/users/42 | 200 | 12.4 | request completed
+2026-03-01T09:00:00.850Z | INFO | api-gateway | GET /v1/users/42 | 200 | 9.1 | request completed
+2026-03-01T09:00:01.500Z | INFO | api-gateway | GET /v1/orders | 200 | 31.7 | request completed
+2026-03-01T09:00:02.000Z | WARN | api-gateway | GET /v1/orders | 200 | 512.0 | slow downstream
+2026-03-01T09:00:03.250Z | ERROR | order-service | POST /v1/checkout | 402 | 88.2 | payment declined
+2026-03-01T09:00:33.000Z | ERROR | order-service | POST /v1/checkout | 402 | 77.9 | payment declined
+2026-03-01T09:00:45.000Z | ERROR | order-service | POST /v1/checkout | 500 | 1201.0 | upstream timeout
+2026-03-01T09:01:05.000Z | INFO | api-gateway | GET /v1/users/7 | 200 | 7.5 | request completed
+2026-03-01T09:01:10.000Z | WARN | scheduler |  |  |  | job queue depth high
+2026-03-01T09:01:40.000Z | FATAL | scheduler |  |  |  | worker pool exhausted
+this is not a valid log line
+2026-03-01T09:02:00.000Z | INFO | cache | GET /health | 204 | 0.6 | ok
+
+2026-03-01T09:02:15.000Z | DEBUG | api-gateway | GET /v1/users/42 | 304 | 2.1 | not modified

@@ -40,9 +40,10 @@ bool valid_service(std::string_view s) {
     return true;
 }
 
-// Parse "<int>[.<frac>]" (no sign, no exponent) into microseconds, rounding
-// the sub-microsecond remainder half-to-even. Returns false on malformed
-// input or on an integer part wide enough to risk overflow.
+// Parse the duration_ms field -- "<int>[.<frac>]" milliseconds, no sign, no
+// exponent -- into integer microseconds, rounding the sub-microsecond
+// remainder half-to-even. Returns false on malformed input or on an integer
+// part wide enough to risk overflow.
 bool parse_duration_us(std::string_view s, std::int64_t& out) {
     const std::size_t dot = s.find('.');
     const std::string_view ip = (dot == std::string_view::npos) ? s : s.substr(0, dot);
@@ -53,16 +54,18 @@ bool parse_duration_us(std::string_view s, std::int64_t& out) {
     if (ip.empty() && fp.empty()) return false;
     if (!ip.empty() && !all_digits(ip)) return false;
     if (dot != std::string_view::npos && !all_digits(fp)) return false;
-    if (ip.size() > 12) return false; // keep whole * 1e6 well inside int64
+    if (ip.size() > 15) return false; // keep whole_ms * 1000 well inside int64
 
-    std::int64_t whole = 0;
-    for (char c : ip) whole = whole * 10 + (c - '0');
-    std::int64_t us = whole * 1'000'000;
+    std::int64_t whole_ms = 0;
+    for (char c : ip) whole_ms = whole_ms * 10 + (c - '0');
+    std::int64_t us = whole_ms * 1000;
 
+    // First three fractional digits are microseconds (0.001 ms = 1 us);
+    // the fourth decides half-to-even rounding.
     std::int64_t frac_us = 0;
-    std::int64_t scale = 100'000; // first fractional digit is 1e5 us
+    std::int64_t scale = 100;
     std::size_t k = 0;
-    for (; k < 6 && k < fp.size(); ++k) {
+    for (; k < 3 && k < fp.size(); ++k) {
         frac_us += (fp[k] - '0') * scale;
         scale /= 10;
     }

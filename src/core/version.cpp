@@ -1,4 +1,4 @@
-#include "app/version.hpp"
+#include "core/version.hpp"
 
 namespace la {
 

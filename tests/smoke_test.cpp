@@ -1,6 +1,6 @@
 #include "support/test_framework.hpp"
 
-#include "app/version.hpp"
+#include "core/version.hpp"
 
 #include <string>
 

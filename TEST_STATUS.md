@@ -8,6 +8,7 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M0 — repo skeleton | 2026-09-02 | clean | 3/3 | smoke test only; CTest 1/1 |
 | M1 — parser | 2026-09-02 | clean | 38/38 | timestamp + pipe format + analyze_buffer; CTest 1/1 |
 | M2 — filters + CLI | 2026-09-02 | clean | 63/63 | RecordFilter + full analyze arg parsing; CTest 1/1 |
+| M3 — aggregation + text report | 2026-09-02 | clean | 93/93 | sequential aggregate + stats + text renderer + golden-file integration test; CTest 1/1 |
 
 ## Detail — M0
 
@@ -68,3 +69,35 @@ Test files:
   `--top`, boolean flags + `-o`, unknown option.
 - `app/analyze_tests.cpp` — updated for the filter argument; added a
   filter-narrows-`kept` case.
+
+## Detail — M3
+
+Scope: `la_core` (version, extracted from app to break a report->app cycle),
+`la_aggregate` (`LatencyHistogram`, `EndpointStat`, `TimeBuckets`,
+`Aggregate` + `aggregate_buffer`), `la_stats` (`build_report` -> render-ready
+`Report` with total-order ranked lists), `la_report` (`render_text`).
+`analyze` now aggregates and prints a full statistics report; `-o` writes to
+a file. `format_timestamp` added as the inverse of `parse_timestamp`.
+
+Also fixed: `duration_ms` was parsed as if the integer part were seconds
+(x1e6); it is milliseconds (x1e3). Caught by eyeballing the first rendered
+report.
+
+Test files:
+- `aggregate/histogram_tests.cpp` — inclusive upper edges, overflow bucket,
+  merge, percentiles from a known fill, empty.
+- `aggregate/endpoint_stat_tests.cpp` — counts/min/max/exact sum, population
+  stddev, stddev==0 below 2 samples, merge + merge-with-empty identity.
+- `aggregate/time_buckets_tests.cpp` — floored keys, negative-timestamp
+  floor division, per-key merge.
+- `aggregate/aggregate_tests.cpp` — line totals, by level/status/class,
+  services/error-messages/failures, endpoint latency, time buckets, and a
+  split-then-merge == whole check in both orders (pre-figures the M6 gate).
+- `stats/report_tests.cpp` — severity rollup, ascending vs count-ranked
+  codes, ranked services/errors, failures, busiest vs slowest ordering,
+  `top_n` clamping, chronological timeline.
+- `report/text_renderer_tests.cpp` — `format_interval`, all sections present
+  for an empty report, latency sentinels ("-" / ">10000").
+- `integration/analyze_text_test.cpp` — full `run()` pipeline over
+  `tests/data/valid_small.log` diffed against `valid_small.report.txt`
+  (golden, LF endings); missing-file exit code 2.

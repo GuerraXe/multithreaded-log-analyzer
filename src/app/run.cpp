@@ -1,8 +1,7 @@
 #include "app/run.hpp"
 
 #include "app/analyze.hpp"
-#include "app/version.hpp"
-#include "filter/record_filter.hpp"
+#include "core/version.hpp"
 
 #include <ostream>
 
@@ -60,10 +59,8 @@ int run(const Options& opt, std::ostream& out, std::ostream& err) {
             print_usage(out);
             return 0;
 
-        case Command::Analyze: {
-            const RecordFilter filter(opt.filter);
-            return run_analyze(opt.input_path, filter, out, err);
-        }
+        case Command::Analyze:
+            return run_analyze(opt, out, err);
 
         case Command::Benchmark:
         case Command::Gen:
