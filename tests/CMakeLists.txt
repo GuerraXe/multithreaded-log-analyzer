@@ -15,6 +15,7 @@ add_executable(loganalyzer_tests
     aggregate/endpoint_stat_tests.cpp
     aggregate/time_buckets_tests.cpp
     aggregate/aggregate_tests.cpp
+    concurrency/equivalence_tests.cpp
     stats/report_tests.cpp
     report/text_renderer_tests.cpp
     report/json_renderer_tests.cpp

@@ -9,7 +9,7 @@ Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
     Aggregate agg(opt.interval_ms, opt.malformed_sample_limit, opt.collect_durations);
     agg.bytes = buffer.size();
 
-    std::uint64_t line_no = 0;
+    std::uint64_t line_no = opt.line_number_base - 1;
     for_each_line(buffer, [&](std::string_view line) {
         ++line_no;
         if (is_blank_line(line)) {

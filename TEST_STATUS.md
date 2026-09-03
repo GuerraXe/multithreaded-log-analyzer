@@ -11,6 +11,19 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 | M3 — aggregation + text report | 2026-09-02 | clean | 93/93 | sequential aggregate + stats + text renderer + golden-file integration test; CTest 1/1 |
 | M4 — JSON report + strict + malformed samples | 2026-09-02 | clean | 103/103 | frozen JSON schema (`valid_small.expected.json`), `--exact-percentiles`, `--strict` exit 3; CTest 1/1 |
 | M5 — io: mmap + chunk splitter | 2026-09-02 | clean | 116/116 | `MappedFile` (Win32 mmap + fallback), newline-aligned `split_into_chunks`; `analyze` now reads via mmap; CTest 1/1 |
+| M6 — concurrency + equivalence gate | 2026-09-02 | clean | 122/122 | `parallel_aggregate` (lock-free map/reduce); seq==par bit-identical (+ identical rendered JSON) for threads 1..64, with filters, tiny/empty input; CTest 1/1 |
+
+### Equivalence gate (SPEC section 6)
+
+`tests/concurrency/equivalence_tests.cpp` builds a fixed-seed 4000-line
+synthetic log and asserts `parallel_aggregate` matches the sequential
+`aggregate_buffer` for threads ∈ {1,2,3,4,7,8,16,32,64} on every bit-exact
+field (counts, by-level/status/class/service, error messages, failures,
+per-endpoint count/timed/min/max/sum_us/histogram bins, time buckets,
+malformed samples) **and** on the byte-for-byte rendered JSON. Per-endpoint
+stddev is compared at 1e-9 relative tolerance (the single value SPEC allows
+to diverge). Also covered: non-trivial filter, threads ≫ line count,
+empty / blank-only buffers, repeat-run determinism.
 
 ## Detail — M0
 

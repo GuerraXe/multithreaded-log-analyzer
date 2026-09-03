@@ -1,6 +1,7 @@
 #include "app/analyze.hpp"
 
 #include "aggregate/aggregator.hpp"
+#include "concurrency/parallel_aggregate.hpp"
 #include "core/lines.hpp"
 #include "io/mapped_file.hpp"
 #include "parse/formats.hpp"
@@ -51,8 +52,10 @@ int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
         return 1;
     }
 
-    if (opt.exact_percentiles && opt.threads > 1) {
+    unsigned threads = opt.threads < 0 ? 1u : static_cast<unsigned>(opt.threads);
+    if (opt.exact_percentiles && threads != 1) {
         err << "loganalyzer: --exact-percentiles forces single-threaded analysis\n";
+        threads = 1;
     }
 
     AggregateOptions aopt;
@@ -62,7 +65,7 @@ int run_analyze(const Options& opt, std::ostream& out, std::ostream& err) {
     aopt.collect_durations = opt.exact_percentiles;
 
     const RecordFilter filter(opt.filter);
-    const Aggregate agg = aggregate_buffer(buf, *fmt, filter, aopt);
+    const Aggregate agg = parallel_aggregate(buf, *fmt, filter, aopt, threads);
     const Report rep = build_report(agg, opt.top_n, opt.exact_percentiles);
 
     std::ofstream fout;

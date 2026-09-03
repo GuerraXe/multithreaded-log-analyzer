@@ -8,6 +8,8 @@ namespace la {
 struct BucketCounts {
     std::uint64_t requests = 0;
     std::uint64_t errors = 0;
+
+    bool operator==(const BucketCounts&) const = default;
 };
 
 // Traffic aggregated into fixed-width time windows. Keyed by the bucket start
