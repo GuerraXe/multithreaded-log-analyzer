@@ -13,7 +13,10 @@ std::int64_t floor_div(std::int64_t a, std::int64_t b) {
 } // namespace
 
 std::int64_t TimeBuckets::bucket_start(std::int64_t epoch_ms) const {
-    return floor_div(epoch_ms, interval_ms_) * interval_ms_;
+    // Guard against a non-positive interval (the CLI rejects one, but a direct
+    // caller could pass it) so this never divides by zero.
+    const std::int64_t iv = interval_ms_ > 0 ? interval_ms_ : 1;
+    return floor_div(epoch_ms, iv) * iv;
 }
 
 void TimeBuckets::add(std::int64_t epoch_ms, bool is_error) {

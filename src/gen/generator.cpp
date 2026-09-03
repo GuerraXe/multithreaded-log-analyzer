@@ -84,22 +84,24 @@ const char* pick_level(Rng& rng) {
     return "FATAL";
 }
 
-std::size_t pick_endpoint_zipf(Rng& rng) {
-    // Weight of rank k (1-based) is 1/k; draw against the cumulative sum.
-    static double cumulative[kEndpoints.size()];
-    static bool ready = false;
-    if (!ready) {
-        double acc = 0.0;
-        for (std::size_t k = 0; k < kEndpoints.size(); ++k) {
-            acc += 1.0 / static_cast<double>(k + 1);
-            cumulative[k] = acc;
-        }
-        for (double& c : cumulative) c /= acc;
-        ready = true;
+// Normalized cumulative distribution over endpoint ranks: weight of rank k
+// (1-based) is 1/k. Computed once at load time; immutable, so no lazy-init
+// guard and no mutable state (SPEC NFR-3).
+constexpr std::array<double, kEndpoints.size()> kEndpointCdf = [] {
+    std::array<double, kEndpoints.size()> c{};
+    double acc = 0.0;
+    for (std::size_t k = 0; k < c.size(); ++k) {
+        acc += 1.0 / static_cast<double>(k + 1);
+        c[k] = acc;
     }
+    for (double& v : c) v /= acc;
+    return c;
+}();
+
+std::size_t pick_endpoint_zipf(Rng& rng) {
     const double u = rng.uniform();
-    for (std::size_t k = 0; k < kEndpoints.size(); ++k) {
-        if (u <= cumulative[k]) return k;
+    for (std::size_t k = 0; k < kEndpointCdf.size(); ++k) {
+        if (u <= kEndpointCdf[k]) return k;
     }
     return kEndpoints.size() - 1;
 }

@@ -1,7 +1,7 @@
 #include "io/mapped_file.hpp"
 
 #include <fstream>
-#include <sstream>
+#include <ios>
 #include <utility>
 
 #ifdef _WIN32
@@ -18,13 +18,20 @@ namespace la {
 namespace {
 
 // Read the whole file into `out`. Returns an error string, empty on success.
+// Sizes the destination up front and reads once, so the bytes are not copied
+// through an intermediate stream buffer.
 std::string read_all(const std::string& path, std::string& out) {
-    std::ifstream in(path, std::ios::binary);
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
     if (!in) return "cannot open '" + path + "'";
-    std::ostringstream ss;
-    ss << in.rdbuf();
+
+    const std::streamoff end = in.tellg();
+    if (end < 0) return "cannot stat '" + path + "'";
+    in.seekg(0, std::ios::beg);
+
+    out.resize(static_cast<std::size_t>(end));
+    if (end > 0) in.read(out.data(), end);
     if (in.bad()) return "read error on '" + path + "'";
-    out = ss.str();
+    out.resize(static_cast<std::size_t>(in.gcount()));
     return {};
 }
 

@@ -27,6 +27,32 @@ std::vector<unsigned> default_thread_counts() {
     return {s.begin(), s.end()};
 }
 
+// Minimal JSON string-body escaper (no surrounding quotes). The verdict is the
+// only free-form string this report emits; keep its output valid even if the
+// wording ever grows a quote, backslash, or control character.
+std::string json_escape(std::string_view s) {
+    std::string out;
+    out.reserve(s.size());
+    for (const unsigned char c : s) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    char buf[8];
+                    std::snprintf(buf, sizeof buf, "\\u%04x", c);
+                    out += buf;
+                } else {
+                    out.push_back(static_cast<char>(c));
+                }
+        }
+    }
+    return out;
+}
+
 std::string format_verdict(const std::vector<BenchRow>& rows) {
     const BenchRow* best = nullptr;
     for (const auto& r : rows) {
@@ -167,7 +193,7 @@ void render_benchmark_json(const BenchmarkReport& r, std::ostream& os) {
         os << buf;
     }
     os << "  ],\n";
-    os << "  \"verdict\": \"" << r.verdict << "\"\n";
+    os << "  \"verdict\": \"" << json_escape(r.verdict) << "\"\n";
     os << "}\n";
 }
 

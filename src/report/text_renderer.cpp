@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 namespace la {
 namespace {
@@ -30,7 +31,7 @@ std::string uint_col(std::uint64_t v, std::size_t width) {
     return s;
 }
 
-void section(std::ostream& os, const char* title) {
+void section(std::ostream& os, std::string_view title) {
     os << '\n' << title << '\n';
 }
 
@@ -56,9 +57,9 @@ void render_text(const Report& r, std::ostream& os) {
 
     section(os, "severity");
     for (int i = 0; i < kLevelCount; ++i) {
-        const auto lv = static_cast<Level>(i);
-        os << "  " << to_string(lv);
-        for (std::size_t pad = to_string(lv).size(); pad < 6; ++pad) os << ' ';
+        const std::string_view name = to_string(static_cast<Level>(i));
+        os << "  " << name;
+        for (std::size_t pad = name.size(); pad < 6; ++pad) os << ' ';
         os << uint_col(r.by_level[static_cast<std::size_t>(i)], 10) << "\n";
     }
     os << "  errors=" << r.errors << "  warnings=" << r.warnings << "\n";
@@ -125,7 +126,7 @@ void render_text(const Report& r, std::ostream& os) {
         }
     }
 
-    section(os, ("traffic (" + format_interval(r.interval_ms) + " buckets)").c_str());
+    section(os, "traffic (" + format_interval(r.interval_ms) + " buckets)");
     if (r.timeline.empty()) {
         os << "  (none)\n";
     } else {

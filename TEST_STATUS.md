@@ -7,6 +7,12 @@ full `loganalyzer_tests` binary must be green before a milestone is marked done.
 `/W4 /permissive-` in both Debug and Release. The sequential/parallel
 equivalence gate (SPEC section 6) passes bit-for-bit.
 
+### Post-v1.0 maintenance
+
+| Date | Build | Tests | Change |
+|---|---|---|---|
+| 2026-09-02 | clean (Debug + Release) | 133/133 | Hardening + hygiene pass, no behaviour change to valid inputs: cap effective worker count at 1024 so a pathological `--threads` value can't abort the process via an unhandled `std::system_error`; reject `--interval` values that would overflow `int64` ms; guard `TimeBuckets::bucket_start` against a zero interval; JSON-escape the benchmark `verdict` string; read the mmap fallback straight into its buffer instead of through a stringstream; replace the `gen` endpoint-CDF lazy `static` with a `constexpr` table (NFR-3); tidy `render_text`/`aggregate_buffer` locals; align SPEC §3.2 wording with the "extra `\| ` folds into message" rule. |
+
 | Milestone | Date | Build | Tests (pass/total) | Notes |
 |---|---|---|---|---|
 | M0 — repo skeleton | 2026-09-02 | clean | 3/3 | smoke test only; CTest 1/1 |

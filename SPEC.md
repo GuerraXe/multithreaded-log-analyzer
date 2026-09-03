@@ -82,8 +82,9 @@ Example lines:
 
 A non-empty, non-blank line is **malformed** when any of the following holds:
 
-- field count is not exactly 7 (too few or too many `" | "` separators before
-  the message);
+- fewer than six `" | "` separators precede the message (fewer than 7 fields);
+  a line with six or more separators is accepted, and any beyond the sixth are
+  taken as part of the `message` value (see section 3.3);
 - `timestamp` does not match the grammar or encodes an invalid date/time;
 - `level` is not a recognized level name;
 - `service` is empty after trimming or contains a disallowed character;

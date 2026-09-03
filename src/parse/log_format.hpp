@@ -10,7 +10,7 @@ namespace la {
 // Why a non-blank line failed to parse. `None` accompanies a successful parse.
 enum class ParseError : std::uint8_t {
     None = 0,
-    FieldCount, // too few "<SP>|<SP>"-separated fields before the message
+    FieldCount, // fewer than six "<SP>|<SP>" separators before the message
     Timestamp,
     Level,
     Service,

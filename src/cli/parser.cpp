@@ -67,6 +67,10 @@ bool parse_interval_ms(std::string_view s, std::int64_t& out) {
     }
     std::uint64_t v = 0;
     if (!to_u64(num, v) || v == 0) return false;
+    // Reject values that would overflow int64 once scaled to milliseconds.
+    if (v > static_cast<std::uint64_t>(INT64_MAX) / static_cast<std::uint64_t>(mult)) {
+        return false;
+    }
     out = static_cast<std::int64_t>(v) * mult;
     return true;
 }

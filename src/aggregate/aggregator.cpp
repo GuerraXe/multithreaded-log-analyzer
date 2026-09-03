@@ -9,9 +9,9 @@ Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
     Aggregate agg(opt.interval_ms, opt.malformed_sample_limit, opt.collect_durations);
     agg.bytes = buffer.size();
 
-    std::uint64_t line_no = opt.line_number_base - 1;
+    std::uint64_t line_no = opt.line_number_base;
     for_each_line(buffer, [&](std::string_view line) {
-        ++line_no;
+        const std::uint64_t this_line = line_no++;
         if (is_blank_line(line)) {
             ++agg.blank;
             return;
@@ -19,7 +19,7 @@ Aggregate aggregate_buffer(std::string_view buffer, const ILogFormat& fmt,
         ++agg.total_lines;
         const ParseResult r = fmt.parse_line(line);
         if (!r.ok) {
-            agg.note_malformed(line_no, r.error, line);
+            agg.note_malformed(this_line, r.error, line);
             return;
         }
         ++agg.records;
