@@ -1,0 +1,19 @@
+# Build output
+/build/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Editor / tooling
+.vs/
+.vscode/
+*.user
+compile_commands.json
+.cache/
+
+# Generated datasets (large; produced by `loganalyzer gen` or CTest)
+/datasets/generated/
+/tests/data/large/
